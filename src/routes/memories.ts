@@ -3,8 +3,15 @@ import { prismaClient } from '../lib/prisma'
 import { z } from 'zod'
 
 export async function memoriesRoutes(app: FastifyInstance) {
-  app.get('/memories', async () => {
+  app.addHook('preHandler', async (request) => {
+    await request.jwtVerify()
+  })
+
+  app.get('/memories', async (request) => {
     const memories = await prismaClient.memory.findMany({
+      where: {
+        userId: request.user.sub,
+      },
       orderBy: {
         createdAt: 'asc',
       },
@@ -23,7 +30,10 @@ export async function memoriesRoutes(app: FastifyInstance) {
     const { id } = paramsSchema.parse(request.params)
     return prismaClient.memory.findUniqueOrThrow({
       where: {
-        id,
+        id_userId: {
+          id,
+          userId: request.user.sub,
+        },
       },
     })
   })
@@ -41,7 +51,7 @@ export async function memoriesRoutes(app: FastifyInstance) {
         content,
         isPublic,
         coverUrl,
-        userId: '82ad1473-9f17-41f9-ab15-802b4f3b949a',
+        userId: request.user.sub,
       },
     })
   })
@@ -53,9 +63,16 @@ export async function memoriesRoutes(app: FastifyInstance) {
       coverUrl: z.string(),
       isPublic: z.coerce.boolean().default(false),
     })
+
     const { id, coverUrl, content, isPublic } = bodySchema.parse(request.body)
+
     return prismaClient.memory.update({
-      where: { id },
+      where: {
+        id_userId: {
+          id,
+          userId: request.user.sub,
+        },
+      },
       data: {
         content,
         coverUrl,
@@ -69,9 +86,13 @@ export async function memoriesRoutes(app: FastifyInstance) {
       id: z.string().uuid(),
     })
     const { id } = paramsSchema.parse(request.params)
+
     await prismaClient.memory.delete({
       where: {
-        id,
+        id_userId: {
+          id,
+          userId: request.user.sub,
+        },
       },
     })
   })

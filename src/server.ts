@@ -1,14 +1,31 @@
+import 'dotenv/config'
+
 import fastify from 'fastify'
 import { memoriesRoutes } from './routes/memories'
-import cors from '@fastify/cors'
+import { authRoutes } from './routes/auth'
+import { uploadRoutes } from './routes/upload'
+import { resolve } from 'path'
 
 const app = fastify()
 
-app.register(cors, {
+app.register(require('@fastify/multipart'))
+
+app.register(require('@fastify/static'), {
+  root: resolve(__dirname, '../uploads'),
+  prefix: '/uploads',
+})
+
+app.register(require('@fastify/cors'), {
   origin: true,
 })
 
+app.register(require('@fastify/jwt'), {
+  secret: process.env.JWT_SECRET!,
+})
+
+app.register(authRoutes)
 app.register(memoriesRoutes)
+app.register(uploadRoutes)
 
 app.listen({ port: 3030 }).then(async () => {
   console.log('Started')
