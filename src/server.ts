@@ -1,14 +1,32 @@
+import 'dotenv/config'
+
 import fastify from 'fastify'
-import { PrismaClient } from '@prisma/client'
+import { memoriesRoutes } from './routes/memories'
+import { authRoutes } from './routes/auth'
+import { uploadRoutes } from './routes/upload'
+import { resolve } from 'path'
 
 const app = fastify()
 
-const prismaClient = new PrismaClient()
+app.register(require('@fastify/multipart'))
 
-app.listen({ port: 3030 }).then(async () => {
-  console.log('kekw')
+app.register(require('@fastify/static'), {
+  root: resolve(__dirname, '../uploads'),
+  prefix: '/uploads',
 })
 
-app.get('/', async () => {
-  return prismaClient.user.findMany()
+app.register(require('@fastify/cors'), {
+  origin: true,
+})
+
+app.register(require('@fastify/jwt'), {
+  secret: process.env.JWT_SECRET!,
+})
+
+app.register(authRoutes)
+app.register(memoriesRoutes)
+app.register(uploadRoutes)
+
+app.listen({ port: 3030 }).then(async () => {
+  console.log('Started')
 })
